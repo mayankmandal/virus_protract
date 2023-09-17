@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css?family=Open+Sans" rel="stylesheet">
+	<script type="text/javascript" src="main.js" defer></script>
+	<style>
+	.okie{
+		border-radius: 12px; 
+		margin:10px; 
+		color:#8b0000;
+		background-color: #ffa500 ;
+		border:3px #87cefa;
+		font-family:Consolas;
+		font-size: 20px; 
+		padding: 10px 24px;
+		outline-style: none;
+	}
+	.button1 {
+	  text-align: center;
+	  font-size: 22px;
+	  transition: all 0.2s;
+	  cursor: pointer;
+	  margin: 5px;
+	}
+
+	.button1 span {
+	  cursor: pointer;
+	  display: inline-block;
+	  position: relative;
+	  transition: 0.2s;
+	}
+	.button1:hover{
+		background-color: #ffe05d ;
+		border-radius: 17px;  
+		color:#8b0000;
+		font-size: 20px;
+		opacity:0.9;
+	}
+	.button1 span:after {
+	  content: '\00bb';
+	  position: absolute;
+	  opacity: 0;
+	  top: 0;
+	  right: -20px;
+	  transition: 0.3s;
+	}
+
+	.button1:hover span {
+	  padding-right: 25px; 
+	}
+
+	.button1:hover span:after {
+	  opacity: 1;
+	  right: 0;
+	}
+	</style>
+    <title>Form Feed</title>
+  </head>
+  <body>
+
+  <section id="top">
+    <img src="vp.png" alt="Form A Story Logo">
+  </section>
+
+  <section id="main">
+    <h1>Feed The Information<br></h1>
+    <hr style="border-top: 1px solid #000000">
+
+<!-- Text Inputs -->
+
+    <form style="font-size:20px; " action="virus.html" method="get">
+	<center>
+		<table id="table_1" style="text-align: left;">
+		<tr>
+        <td><label for="x_max">X-MAX: </label></td>
+        <td><input style="font-size:17px; " type="number" name="x_max" id="x_max" placeholder="1000" value="1000"  min="0" max="10000" ></td>
+		</tr>
+		<tr>
+        <td><label for="y_max">Y-MAX: </label></td>
+        <td><input style="font-size:17px; " type="number" name="y_max" id="y_max" placeholder="700" value="700"  min="0" max="10000" ></td>
+        </tr>
+		<tr>
+		<td><label for="diameter_d">Diameter: </label></td>
+        <td><input style="font-size:17px; " type="number" name="diameter_d" id="diameter_d" placeholder="8" value="8" min="0" max="25" ></td>
+        </tr>
+		<tr>
+		<td><label for="heal_dist">Healing Distance: </label></td>
+        <td><input style="font-size:17px; " type="number" name="heal_dist" id="heal_dist" placeholder="20" value="20" min="0" max="100" ></td>
+        </tr>
+		<tr>
+		<td><label for="infect_dist">Infection Distance: </label></td>
+        <td><input style="font-size:17px; " type="number" name="infect_dist" id="infect_dist" placeholder="20" value="20" min="0" max="100" ></td>
+        </tr>
+		<tr>
+        <td><label for="no_of_humans">Number of Humans: </label></td>
+        <td><input style="font-size:17px; " type="number" name="no_of_humans" id="no_of_humans" placeholder="100" value="100" min="0" max="2000" ></td>
+        </tr>
+		<tr>
+        <td><label for="goods_p">Number of Lifelines : </label></td>
+        <td><input style="font-size:17px; " type="number" name="goods_p" id="goods_p" placeholder="10" value="10" min="0" max="1500" ></td>
+        </tr>
+		<tr>
+        <td><label for="evils_p">Number of Virus: </label></td>
+        <td><input style="font-size:17px; " type="number" name="evils_p" id="evils_p" placeholder="10" value="10" min="0" max="1500" ></td>
+        </tr>
+		<tr>
+		<!-- Submit form -->
+        <td><button class="okie button1" type="submit" value="Start Simulation" style="width:300px;" onclick="function();" ><span>Start Simulation </span></td>
+		<td><button class="okie button1" type="reset" style="width:150px;" value="Reset" ><span>Reset </span></td>
+		</tr>
+		<tr>
+		</table>
+	</center>
+    </form> 
+    
+  </section>
+  </body>
+</html>

@@ -1,0 +1,428 @@
+<html>
+    <head>
+        <title>Virus Protract</title>
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<script src="main.js" type="text/javascript"></script>
+        <script src="jssim.js" type="text/javascript"></script>
+		<link rel="stylesheet" type="text/css" href="extra.css">
+    </head>
+   <body >
+   	
+   	<div class="pill-nav" style="border-radius: 10px; background-color:#f0f8ff;">
+	  <a class="active" href="#home">Home</a>
+	  <a target="_parent" href="about.html">About Us</a>
+	  <a target="_parent" href="virus_protract.pdf" >Report</a>
+	  <a target="_blank" href="index.html" >New Simulation</a>
+	  <a target="_parent" onclick="goBack1()" >Back</a>
+	</div>
+	<div style="border-radius: 12px;border:9px groove #daa520;background-color:#fffff0;font-size:30px; margin: 10px;">
+        <h2 style="color:#191970;font-family:Yu Gothic;"" align="center">Discrete-Event Simulator: Virus Protract <br> <input type="text" style="outline-style: none; border-radius: 15px; letter-spacing:2px;color:#ff6347;background-color: #fffacd ;border:3px solid #2e8b57;font-weight:1000;font-family:Consolas;font-size: 20px; width: 350px;" align="right" id="simTime" value="" /></h2>
+        
+        <p style="color:#b22222 ; font-size:20px;font-weight:1000;font-family:Microsoft Sans Serif,georgia,serif;  word-spacing:3px; letter-spacing:2px; margin:15px;">
+            A simulation of intentional virus infection and disinfection in a population.  The virus(in purple) either move randomly or devouringly chase after the nearest uninfected individual (in black). Infected individuals (in orange) move devouringly and may be disinfected by lifelines (in red) who likewise either move randomly or devouringly.
+        </p>
+		
+        
+				
+        <center>
+			<canvas id="myCanvas" width="1000" height="700" style="border-radius: 20px; border:5px ridge #4169e1;background-color:#f5f5f5; margin-bottom:50px; " >
+
+			</canvas>
+			
+		</center>
+		<script type="text/javascript">
+			var canv = document.getElementById("myCanvas");
+			var context = canv.getContext("2d");
+			canv.width = x_max;
+			canv.height = y_max;
+		</script>
+		
+		
+        <script>
+            (function(){
+                var XMIN = 0;
+                var XMAX = x_max;
+				
+                var YMIN = 0;
+                var YMAX = y_max;
+				
+                var DIAMETER = diameter_d;
+
+                var HEALING_DISTANCE = heal_dist;
+                var HEALING_DISTANCE_SQUARED = HEALING_DISTANCE * HEALING_DISTANCE;
+                var INFECTION_DISTANCE = infect_dist;
+                var INFECTION_DISTANCE_SQUARED = INFECTION_DISTANCE * INFECTION_DISTANCE;
+
+                var NUM_HUMANS = no_of_humans;
+                var NUM_GOODS = goods_p;
+                var NUM_EVILS = evils_p;
+				
+				var global_good=0;
+				var global_evil=0;
+                
+                var healthy_icon = new Image();
+                healthy_icon.src = "normal.png";
+                var infected_icon = new Image();
+                infected_icon.src = "infected.png";
+                var good_icon = new Image();
+                good_icon.src = "good.png";
+                var evil_icon = new Image();
+                evil_icon.src = "virus.png";
+                
+                var Evil = function(id, loc, space) {
+                    jssim.SimEvent.call(this);
+                    this.id = id;
+                    this.agentLocation = loc;
+                    this.color = '#ff0000';
+                    this.desiredLocation = null;
+                    this.suggestedLocation = null;
+                    this.steps = 0;  
+                    this.space = space;
+                    space.updateAgent(this, loc.x, loc.y);
+                    this.type = 'Evil';
+                    this.greedy = false;
+                };
+                
+                Evil.prototype = Object.create(jssim.SimEvent.prototype);
+                
+                Evil.prototype.update = function(deltaTime) {
+                    var mysteriousObjects = this.space.getNeighborsWithinDistance(this.agentLocation, 10.0 * INFECTION_DISTANCE);
+                    
+                    var distance2DesiredLocation = 1000000;
+                    for(var i = 0 ; i < mysteriousObjects.length ; i++ )
+                    {
+                        if(mysteriousObjects[i] != this )
+                        {
+                            if(mysteriousObjects[i].type != 'Human') continue;
+                            var ta = mysteriousObjects[i];
+                            if(ta.isInfected()) continue;
+                            if(withinInfectionDistance(this.agentLocation, ta.agentLocation))
+                                ta.setInfected( true );
+                            else
+                            {
+                                if(this.greedy)
+                                {
+                                    var tmpDist = distanceSquared(this.agentLocation, ta.agentLocation);
+                                    if(tmpDist <  distance2DesiredLocation )
+                                    {
+                                        this.desiredLocation = ta.agentLocation;
+                                        distance2DesiredLocation = tmpDist;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                        
+
+                    this.steps--;
+                    if( this.desiredLocation == null || !this.greedy )
+                    {
+                        if(this.steps <= 0 )
+                        {
+                            this.suggestedLocation = new jssim.Vector2D((Math.random()-0.5)*((XMAX-XMIN)/5-DIAMETER) + this.agentLocation.x,
+                                (Math.random()-0.5)*((YMAX-YMIN)/5-DIAMETER) + this.agentLocation.y);
+                            this.steps = 100;
+                        }
+                        this.desiredLocation = this.suggestedLocation;
+                    }
+
+                    var dx = this.desiredLocation.x - this.agentLocation.x;
+                    var dy = this.desiredLocation.y - this.agentLocation.y;
+
+                    var temp = 0.5 * Math.sqrt(dx*dx+dy*dy);
+                    if( temp < 1 )
+                    {
+                        this.steps = 0;
+                    }
+                    else
+                    {
+                        dx /= temp;
+                        dy /= temp;
+                    }
+                                
+
+                    if( !acceptablePosition(this, new jssim.Vector2D(this.agentLocation.x + dx, this.agentLocation.y + dy), this.space) )
+                    {
+                        this.steps = 0;
+                    }
+                    else
+                    {
+                        this.agentLocation = new jssim.Vector2D(this.agentLocation.x + dx, this.agentLocation.y + dy);
+                        space.updateAgent(this, this.agentLocation.x, this.agentLocation.y);
+                    }
+                };
+                
+                Evil.prototype.draw = function(context, pos) {
+                    context.drawImage(evil_icon, pos.x, pos.y);    
+                };
+                
+                var Good = function(id, loc, space) {
+                    jssim.SimEvent.call(this);
+                    this.id = id;
+                    this.agentLocation = loc;
+                    this.color = '#00ff00';
+                    this.desiredLocation = null;
+                    this.suggestedLocation = null;
+                    this.steps = 0;  
+                    this.space = space;
+                    space.updateAgent(this, loc.x, loc.y);
+                    this.type = 'Good';
+                    this.greedy = true;
+                };
+                
+                Good.prototype = Object.create(jssim.SimEvent.prototype);
+                
+                Good.prototype.update = function(deltaTime) {
+                    var mysteriousObjects = this.space.getNeighborsWithinDistance(this.agentLocation, 10.0 * INFECTION_DISTANCE);
+                    
+                    var distance2DesiredLocation = 1000000;
+                    for(var i = 0 ; i < mysteriousObjects.length ; i++ )
+                    {
+                        if(mysteriousObjects[i] != this )
+                        {
+                            if(mysteriousObjects[i].type != 'Human') continue;
+                            var ta = mysteriousObjects[i];
+                            if(!ta.isInfected()) continue;
+                            if(withinHealingDistance(this.agentLocation, ta.agentLocation))
+                                ta.setInfected(false);
+                            else
+                            {
+                                if(this.greedy)
+                                {
+                                    var tmpDist = distanceSquared(this.agentLocation, ta.agentLocation);
+                                    if(tmpDist <  distance2DesiredLocation )
+                                    {
+                                        this.desiredLocation = ta.agentLocation;
+                                        distance2DesiredLocation = tmpDist;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                        
+
+                    this.steps--;
+                    if( this.desiredLocation == null || !this.greedy )
+                    {
+                        if(this.steps <= 0 )
+                        {
+                            this.suggestedLocation = new jssim.Vector2D((Math.random()-0.5)*((XMAX-XMIN)/5-DIAMETER) + this.agentLocation.x,
+                                (Math.random()-0.5)*((YMAX-YMIN)/5-DIAMETER) + this.agentLocation.y);
+                            this.steps = 100;
+                        }
+                        this.desiredLocation = this.suggestedLocation;
+                    }
+
+                    var dx = this.desiredLocation.x - this.agentLocation.x;
+                    var dy = this.desiredLocation.y - this.agentLocation.y;
+
+                    var temp = 0.5 * Math.sqrt(dx*dx+dy*dy);
+                    if( temp < 1 )
+                    {
+                        this.steps = 0;
+                    }
+                    else
+                    {
+                        dx /= temp;
+                        dy /= temp;
+                    }
+                                
+
+                    if( !acceptablePosition(this, new jssim.Vector2D(this.agentLocation.x + dx, this.agentLocation.y + dy), this.space))
+                    {
+                        this.steps = 0;
+                    }
+                    else
+                    {
+                        this.agentLocation = new jssim.Vector2D(this.agentLocation.x + dx, this.agentLocation.y + dy);
+                        space.updateAgent(this, this.agentLocation.x, this.agentLocation.y);
+                    }
+                };
+                
+                Good.prototype.draw = function(context, pos) {
+                    context.drawImage(good_icon, pos.x, pos.y);  
+                };
+                
+                var Human = function(id, loc, space) {
+                    jssim.SimEvent.call(this);
+                    this.id = id;
+                    this.agentLocation = loc;
+                    this.color = '#ff8800';
+                    this.desiredLocation = null;
+                    this.suggestedLocation = null;
+                    this.steps = 0;  
+                    this.space = space;
+                    space.updateAgent(this, loc.x, loc.y);
+                    this.type = 'Human';
+                    this.infected = false;
+                };
+                
+                Human.prototype = Object.create(jssim.SimEvent.prototype);
+                
+                Human.prototype.setInfected = function(infected) {
+                    this.infected = infected;
+                    if(infected){
+                        this.color = '#5533ff';
+                    } else {
+                        this.color = '#ff8800';
+                    }
+                };
+                
+                Human.prototype.isInfected = function() {
+					if(this.infected){
+						global_evil++;
+					}else{
+						global_good++;
+					}
+                    return this.infected;
+                };
+                
+                Human.prototype.update = function(deltaTime) {
+                    this.steps--;
+                    if( this.desiredLocation == null || this.steps <= 0 )
+                    {
+                        this.desiredLocation = new jssim.Vector2D((Math.random()-0.5)*((XMAX-XMIN)/5-DIAMETER) + this.agentLocation.x,
+                            (Math.random()-0.5)*((YMAX-YMIN)/5-DIAMETER) + this.agentLocation.y);
+                        this.steps = 50 + Math.floor(Math.random() * 50);
+                    }
+
+                    var dx = this.desiredLocation.x - this.agentLocation.x;
+                    var dy = this.desiredLocation.y - this.agentLocation.y;
+
+                
+                    var temp = Math.sqrt(dx*dx+dy*dy);
+                    if( temp < 1 )
+                    {
+                        this.steps = 0;
+                    }
+                    else
+                    {
+                        dx /= temp;
+                        dy /= temp;
+                    }
+                
+
+                    if( ! acceptablePosition(this, new jssim.Vector2D(this.agentLocation.x + dx, this.agentLocation.y + dy ), this.space) )
+                    {
+                        steps = 0;
+                    }
+                    else
+                    {
+                        this.agentLocation = new jssim.Vector2D(this.agentLocation.x + dx, this.agentLocation.y + dy);
+                        this.space.updateAgent(this, this.agentLocation.x, this.agentLocation.y);
+                    }  
+                };
+                
+                Human.prototype.draw = function(context, pos) {
+                    if(this.infected) {
+                        context.drawImage(infected_icon, pos.x, pos.y);
+                    }  else {
+                        context.drawImage(healthy_icon, pos.x, pos.y);
+                    }
+                };
+                
+                
+                
+                function distanceSquared(loc1, loc2)
+                {
+                    return( (loc1.x-loc2.x)*(loc1.x-loc2.x)+(loc1.y-loc2.y)*(loc1.y-loc2.y) );
+                }
+                
+                function conflict(a, b)
+                {
+                    if( ( ( a.x > b.x && a.x < b.x+DIAMETER ) ||
+                            ( a.x+DIAMETER > b.x && a.x+DIAMETER < b.x+DIAMETER ) ) &&
+                            ( ( a.y > b.y && a.y < b.y+DIAMETER ) ||
+                            ( a.y+DIAMETER > b.y && a.y+DIAMETER < b.y+DIAMETER ) ) )
+                    {
+                        return true;
+                    }
+                    return false;
+                }
+
+                function withinInfectionDistance(a, b)
+                {
+                    return ( (a.x-b.x)*(a.x-b.x)+(a.y-b.y)*(a.y-b.y) <= INFECTION_DISTANCE_SQUARED );
+                }
+
+                function withinHealingDistance(a, b )
+                {
+                    return ( (a.x-b.x)*(a.x-b.x)+(a.y-b.y)*(a.y-b.y) <= HEALING_DISTANCE_SQUARED );
+                }
+
+                function acceptablePosition(agent, location, space)
+                {
+                    if( location.x < DIAMETER/2 || location.x > (XMAX-XMIN)-DIAMETER/2 ||
+                        location.y < DIAMETER/2 || location.y > (YMAX-YMIN)-DIAMETER/2 )
+                        return false;
+                    var mysteriousObjects = space.getNeighborsWithinDistance( location, 2*DIAMETER );
+                    for(var i = 0 ; i < mysteriousObjects.length ; i++ )
+                    {
+                        if(mysteriousObjects[i] != agent)
+                        {
+                            var ta = mysteriousObjects[i];
+                            if(conflict(location, space.getLocation(ta.id))) return false;
+                        }
+                    }
+                    return true;
+                }
+
+                
+                var scheduler = new jssim.Scheduler();
+                
+                var space = new jssim.Space2D();
+                
+
+                function reset() {
+                    scheduler.reset(); 
+                    space.reset();
+                    
+                    for(var x=0;x<NUM_HUMANS+NUM_GOODS+NUM_EVILS;x++) {
+                        var dx = Math.floor(Math.random() * 10) - 5;
+                        var dy = Math.floor(Math.random() * 10) - 5;
+                        
+                        var loc = null;
+                        var agent = null;
+                        var times = 0;
+                        while(loc == null || !acceptablePosition(agent, loc, space))
+                        {
+                            loc = new jssim.Vector2D(Math.random()*(XMAX-XMIN-DIAMETER)+XMIN+DIAMETER/2,
+                                Math.random()*(YMAX-YMIN-DIAMETER)+YMIN+DIAMETER/2 );
+                            if( x < NUM_HUMANS )
+                                agent = new Human( "Human"+x, loc, space);
+                            else if( x < NUM_HUMANS+NUM_GOODS ) {
+                                agent = new Good( "Good"+(x-NUM_HUMANS), loc, space);
+                                agent.greedy = Math.random() < 0.5;
+                            }
+                            else {
+                                agent = new Evil( "Evil"+(x-NUM_HUMANS-NUM_GOODS), loc, space);
+                                agent.greedy = Math.random() < 0.5;
+                            }
+                            times++;
+                            if( times == 1000 )
+                            {
+                                break;
+                            }
+                        };
+                        scheduler.scheduleRepeatingIn(agent, 1);
+                    }
+                }
+                
+                reset();
+                
+                var canvas = document.getElementById("myCanvas");
+                
+                setInterval(function(){ 
+                    if(scheduler.current_time == 10000) {
+                        reset();
+                    }
+                    scheduler.update();
+                    space.render(canvas);
+                    document.getElementById("simTime").value = " Simulation Time : " + scheduler.current_time ;
+					
+                }, 50);
+            })();
+        </script>
+	</div>
+   </body>
+</html>
